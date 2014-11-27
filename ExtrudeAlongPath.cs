@@ -4,6 +4,8 @@
 
 using UnityEngine;
 using System.Collections;
+using System.Collections.Generic;
+using System.Linq;
 
 public class ExtrudeAlongPath : MonoBehaviour {
 	public Transform path;
@@ -15,6 +17,20 @@ public class ExtrudeAlongPath : MonoBehaviour {
 		return new Vector3 (v.x, v.y, v.z);
 	}
 
+	struct Pair {
+		public int a, b;
+		public Pair(int a, int b) { this.a = a; this.b = b; }
+		public Pair swapped() {
+			return new Pair (this.b, this.a);
+		}
+	}
+
+	Pair MakeEdge(int a, int b) {
+		return new Pair (a > b ? a : b, a > b ? b : a);
+	}
+
+
+
 	// Use this for initialization
 	void Start () {
 		Animator anim = path.GetComponent<Animator>();
@@ -24,11 +40,29 @@ public class ExtrudeAlongPath : MonoBehaviour {
 		Vector3[] verts = mf.mesh.vertices;
 		int[] indices = mf.mesh.triangles;
 
+		Dictionary<Pair, int> edgeCnt = new Dictionary<Pair, int>();
+		for (int i = 0; i < indices.Length; i += 3) {
+			for (int k = 0; k < 3; k++) {
+				int k1 = (k + 1) % 3;
+				Pair edge = new Pair(indices[i + k], indices[i + k1]); // MakeEdge(indices[k], indices[k1]);
+				Pair swapped = edge.swapped();
+				if (edgeCnt.ContainsKey(edge)) {
+					edgeCnt[edge]++;
+				} else if (edgeCnt.ContainsKey(swapped)) {
+					edgeCnt[swapped]++;
+				} else {
+					edgeCnt.Add(edge, 1);
+				}
+			}
+		}
+		Pair[] filtered = (from kvp in edgeCnt where kvp.Value == 1 select kvp.Key).ToArray<Pair>();
+
 		int n_vert = verts.Length;
 		int n_ind = indices.Length;
+		int n_filt = filtered.Length;
 
 		Vector3[] new_verts = new Vector3[n_vert * (steps + 1)];
-		int[] new_indices = new int[n_ind * 6 * steps];
+		int[] new_indices = new int[n_filt * 6 * steps];
 		Vector2[] new_uv = new Vector2[new_verts.Length];
 
 		Debug.Log (string.Format ("n_vert: {0} n_ind: {1} new_verts.Length: {2} new_indices.Length: {3}", n_vert, n_ind, new_verts.Length, new_indices.Length));
@@ -64,27 +98,17 @@ public class ExtrudeAlongPath : MonoBehaviour {
 		int ofs = 0;
 		for (int i = 0; i < steps - 1; i++) {
 			Debug.Log(string.Format("i: {0}", i));
-			for (int k = 0; k < n_ind; k += 3) {
+			for (int k = 0; k < n_filt; k++) {
 				int a = n_vert * i;
 				int b = n_vert * (i + 1);
 
-				for (int m = 0; m < 3; m++) {
-					int km = k + m;
-					int km1 = k + (m + 1) % 3;
+				new_indices[ofs++] = a + filtered[k].b;
+				new_indices[ofs++] = a + filtered[k].a;
+				new_indices[ofs++] = b + filtered[k].a;
 
-					Debug.Log(ofs);
-
-					new_indices[ofs++] = a + indices[km1];
-					new_indices[ofs++] = a + indices[km];
-					new_indices[ofs++] = b + indices[km];
-
-					Debug.Log(ofs);
-
-					new_indices[ofs++] = a + indices[km1];
-					new_indices[ofs++] = b + indices[km];
-					new_indices[ofs++] = b + indices[km1];
-					//ofs += 6;
-				}
+				new_indices[ofs++] = a + filtered[k].b;
+				new_indices[ofs++] = b + filtered[k].a;
+				new_indices[ofs++] = b + filtered[k].b;
 			}
 		}
 
