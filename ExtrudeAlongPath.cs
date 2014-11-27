@@ -39,6 +39,7 @@ public class ExtrudeAlongPath : MonoBehaviour {
 		MeshFilter mf = obj.GetComponent<MeshFilter> ();
 		Vector3[] verts = mf.mesh.vertices;
 		int[] indices = mf.mesh.triangles;
+		Vector2[] uv = mf.mesh.uv;
 
 		Dictionary<Pair, int> edgeCnt = new Dictionary<Pair, int>();
 		for (int i = 0; i < indices.Length; i += 3) {
@@ -85,7 +86,7 @@ public class ExtrudeAlongPath : MonoBehaviour {
 
 			for (int k = 0; k < n_vert; k++) {
 				new_verts[i * n_vert + k] = mat.MultiplyPoint(verts[k]);
-				new_uv[i * n_vert + k] = new Vector2(0.0f, 0.0f);
+				new_uv[i * n_vert + k] = new Vector2(uv[k].x, (float) i / steps);
 			}
 
 			//Instantiate(obj);
