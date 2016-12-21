@@ -1,4 +1,4 @@
-﻿//
+//
 // Auto-connector a'la Qt
 // Copyright (C) Stanislaw Adaszewski, 2016
 // http://algoholic.eu
@@ -63,9 +63,13 @@ public class AutoConnector {
 			MethodInfo ali = eo.GetType ().GetMethod ("AddListener");
 			if (ali == null)
 				continue;
-			ali.Invoke (eo, new object[] { new UnityAction(() => {
-				mi.Invoke(o, null);
-			}) });
+
+			ParameterInfo[] dpi = ali.GetParameters ();
+			if (dpi == null || dpi.Length != 1)
+				continue;
+			System.Type dt = dpi [0].ParameterType;
+			System.Delegate d = System.Delegate.CreateDelegate (dt, o, mi);
+			ali.Invoke(eo, new object[] { d });
 
 			Debug.Log (string.Format ("Successfully autoconnected {0}", mi.Name));
 		}
