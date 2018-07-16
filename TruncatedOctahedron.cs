@@ -1,4 +1,9 @@
-﻿using System.Collections;
+//
+// Copyright (C) Stanislaw Adaszewski, 2018
+// http://adared.ch
+//
+
+using System.Collections;
 using System.Collections.Generic;
 using UnityEngine;
 
